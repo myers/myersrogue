@@ -6,6 +6,7 @@ mod spawner;
 mod systems;
 mod prelude {
     pub use bracket_lib::prelude::*;
+    pub use legion::systems::CommandBuffer;
     pub use legion::world::SubWorld;
     pub use legion::*;
     pub const SCREEN_WIDTH: i32 = 80;
