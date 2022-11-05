@@ -68,6 +68,8 @@ impl GameState for State {
         ctx.cls();
 
         self.resources.insert(ctx.key);
+        ctx.set_active_console(0);
+        self.resources.insert(ctx.mouse_pos);
 
         let current_state = self.resources.get::<TurnState>().unwrap().clone();
         match current_state {
