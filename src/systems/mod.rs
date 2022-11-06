@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-mod collisions;
+mod combat;
 mod end_turn;
 mod entity_render;
 mod hud;
@@ -23,9 +23,9 @@ pub fn build_input_scheduler() -> Schedule {
 
 pub fn build_player_scheduler() -> Schedule {
     Schedule::builder()
-        .add_system(movement::movement_system())
+        .add_system(combat::combat_system())
         .flush()
-        .add_system(collisions::collisions_system())
+        .add_system(movement::movement_system())
         .flush()
         .add_system(map_render::map_render_system())
         .add_system(entity_render::entity_render_system())
