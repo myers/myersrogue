@@ -8,10 +8,7 @@ pub fn spawn_player(ecs: &mut World, pos: Point) {
             color: ColorPair::new(WHITE, BLACK),
             glyph: to_cp437('@'),
         },
-        Health {
-            max: 20,
-            current: 20,
-        },
+        Health { max: 1, current: 1 },
     ));
 }
 
@@ -22,7 +19,7 @@ pub fn spawn_monster(ecs: &mut World, rng: &mut RandomNumberGenerator, pos: Poin
     };
     ecs.push((
         Enemy,
-        MovingRandomly,
+        ChasingPlayer {},
         pos,
         Render {
             color: ColorPair::new(WHITE, BLACK),
