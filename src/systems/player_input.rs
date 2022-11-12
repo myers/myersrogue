@@ -60,7 +60,6 @@ pub fn player_input(
                 .unwrap()
                 .get_component_mut::<Health>()
             {
-                println!("Healed");
                 health.current = i32::min(health.max, health.current + 1);
             }
         }

@@ -12,6 +12,7 @@ pub fn spawn_player(ecs: &mut World, pos: Point) {
             max: 10,
             current: 10,
         },
+        FieldOfView::new(8),
     ));
 }
 
@@ -45,6 +46,7 @@ pub fn spawn_monster(ecs: &mut World, rng: &mut RandomNumberGenerator, pos: Poin
             current: hp,
         },
         Name(name),
+        FieldOfView::new(6),
     ));
 }
 
