@@ -1,4 +1,5 @@
 mod automata;
+mod drunkard;
 mod empty;
 mod rooms;
 
@@ -19,7 +20,7 @@ trait MapArchitect {
 
 impl MapBuilder {
     pub fn new(rng: &mut RandomNumberGenerator) -> Self {
-        let mut architect = automata::AutomataArchitect {};
+        let mut architect = drunkard::DrunkardsWalkArchitect {};
         architect.new(rng)
     }
 
