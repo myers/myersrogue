@@ -1,50 +1,34 @@
 use crate::prelude::*;
 
-#[system]
-#[read_component(WantsToAttack)]
-#[read_component(Player)]
-#[write_component(Health)]
-#[read_component(Damage)]
-#[read_component(Carried)]
-pub fn combat(ecs: &mut SubWorld, commands: &mut CommandBuffer) {
-    let mut attackers = <(Entity, &WantsToAttack)>::query();
-    let victims: Vec<(Entity, Entity, Entity)> = attackers
-        .iter(ecs)
-        .map(|(entity, attacker)| (*entity, attacker.attacker, attacker.victim))
-        .collect();
+pub fn combat(
+    mut commands: Commands,
+    mut attack_events: EventReader<WantsToAttack>,
+    mut health_query: Query<&mut Health>,
+    player_query: Query<&Player>,
+    base_damage_query: Query<&Damage>,
+    carried_weapons_query: Query<(&Carried, &Damage)>,
+) {
+    for WantsToAttack { attacker, victim } in attack_events.iter() {
+        let is_player = player_query.get(*victim).is_ok();
 
-    victims.iter().for_each(|(message, attacker, victim)| {
-        let is_player = ecs
-            .entry_ref(*victim)
-            .unwrap()
-            .get_component::<Player>()
-            .is_ok();
-
-        let base_damage = if let Ok(v) = ecs.entry_ref(*attacker) {
-            if let Ok(dmg) = v.get_component::<Damage>() {
-                dmg.0
-            } else {
-                0
-            }
+        let base_damage = if let Ok(dmg) = base_damage_query.get(*attacker) {
+            dmg.0
         } else {
             0
         };
-        let weapon_damage: i32 = <(&Carried, &Damage)>::query()
-            .iter(ecs)
-            .filter(|(carried, _)| carried.0 == *attacker)
-            .map(|(_, dmg)| dmg.0)
+
+        let weapon_damage: i32 = carried_weapons_query
+            .iter()
+            .filter_map(|(carried, dmg)| (carried.0 == *attacker).then(|| dmg.0))
             .sum();
+
         let final_damage = base_damage + weapon_damage;
-        if let Ok(mut health) = ecs
-            .entry_mut(*victim)
-            .unwrap()
-            .get_component_mut::<Health>()
-        {
+
+        if let Ok(mut health) = health_query.get_mut(*victim) {
             health.current -= final_damage;
             if health.current < 1 && !is_player {
-                commands.remove(*victim);
+                commands.entity(*victim).despawn();
             }
         }
-        commands.remove(*message);
-    });
+    }
 }

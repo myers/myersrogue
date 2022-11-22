@@ -1,23 +1,21 @@
 use crate::prelude::*;
 
-#[system]
-#[read_component(Point)]
-#[read_component(Render)]
-#[read_component(Player)]
-#[read_component(FieldOfView)]
-pub fn entity_render(ecs: &SubWorld, #[resource] camera: &Camera) {
-    let mut renderables = <(&Point, &Render)>::query();
-    let mut fov = <&FieldOfView>::query().filter(component::<Player>());
-    let player_fov = fov.iter(ecs).nth(0).unwrap();
+pub fn entity_render(
+    renderables: Query<(&PointC, &Render)>,
+    player_fov_query: Query<&FieldOfView, With<Player>>,
+    camera: Res<Camera>,
+) {
     let mut draw_batch = DrawBatch::new();
     draw_batch.target(1);
     let offset = Point::new(camera.left_x, camera.top_y);
 
-    renderables
-        .iter(ecs)
-        .filter(|(pos, _)| player_fov.visible_tiles.contains(&pos))
-        .for_each(|(pos, render)| {
-            draw_batch.set(*pos - offset, render.color, render.glyph);
-        });
+    let player_fov = player_fov_query.single();
+
+    for (pos, render) in renderables.iter() {
+        if player_fov.visible_tiles.contains(&pos.0) {
+            draw_batch.set(pos.0 - offset, render.color, render.glyph);
+        }
+    }
+
     draw_batch.submit(5000).expect("Batch error");
 }

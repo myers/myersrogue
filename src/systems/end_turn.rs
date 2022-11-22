@@ -1,35 +1,36 @@
 use crate::prelude::*;
 
-#[system]
-#[read_component(Player)]
-#[read_component(Health)]
-#[read_component(Point)]
-#[read_component(AmuletOfYala)]
-pub fn end_turn(ecs: &SubWorld, #[resource] turn_state: &mut TurnState, #[resource] map: &Map) {
-    let mut amulet = <&Point>::query().filter(component::<AmuletOfYala>());
-    let amulet_default = Point::new(-1, -1);
-    let amulet_pos = amulet.iter(ecs).nth(0).unwrap_or(&amulet_default);
-
-    let mut player_hp = <(&Health, &Point)>::query().filter(component::<Player>());
-    let current_state = turn_state.clone();
-
-    let mut new_state = match current_state {
-        TurnState::AwaitingInput => return,
+pub fn end_turn(
+    mut commands: Commands,
+    player_query: Query<(&Health, &PointC), With<Player>>,
+    amulet_query: Query<&PointC, With<AmuletOfYala>>,
+    turn_state: Res<TurnState>,
+    map: Res<Map>,
+) {
+    let mut new_state = match *turn_state {
         TurnState::PlayerTurn => TurnState::MonsterTurn,
         TurnState::MonsterTurn => TurnState::AwaitingInput,
-        _ => current_state,
+        // In the source project, AwaitingInput and GameOver return (themselves), however, they're actually
+        // unreachable cases, because this system is not run in such states, and the change to their next
+        // states is performed elsewhere.
+        _ => unreachable!(),
     };
-    player_hp.iter(ecs).for_each(|(hp, pos)| {
-        if hp.current < 1 {
-            new_state = TurnState::GameOver;
-        }
-        if pos == amulet_pos {
-            new_state = TurnState::Victory;
-        }
-        let idx = map.point2d_to_index(*pos);
-        if map.tiles[idx] == TileType::Exit {
-            new_state = TurnState::NextLevel;
-        }
-    });
-    *turn_state = new_state;
+
+    let amulet_default = PointC(Point::new(-1, -1));
+    let amulet_pos = amulet_query.get_single().unwrap_or(&amulet_default);
+
+    let (player_hp, player_pos) = player_query.single();
+
+    if player_hp.current < 1 {
+        new_state = TurnState::GameOver;
+    }
+    if player_pos.0 == amulet_pos.0 {
+        new_state = TurnState::Victory;
+    }
+    let idx = map.point2d_to_index(player_pos.0);
+    if map.tiles[idx] == TileType::Exit {
+        new_state = TurnState::NextLevel;
+    }
+
+    commands.insert_resource(new_state);
 }

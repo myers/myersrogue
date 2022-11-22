@@ -1,24 +1,32 @@
 mod camera;
 mod components;
+mod events;
+mod game_stage;
 mod map;
 mod map_builder;
 mod spawner;
+mod state_label;
 mod systems;
 mod turn_state;
+
 mod prelude {
     pub use bracket_lib::prelude::*;
-    pub use legion::systems::CommandBuffer;
-    pub use legion::world::SubWorld;
-    pub use legion::*;
+
+    // must come after bracket
+    pub use bevy::prelude::*;
+    pub use iyes_loopless::prelude::*;
     pub const SCREEN_WIDTH: i32 = 80;
     pub const SCREEN_HEIGHT: i32 = 50;
     pub const DISPLAY_WIDTH: i32 = SCREEN_WIDTH / 2;
     pub const DISPLAY_HEIGHT: i32 = SCREEN_HEIGHT / 2;
     pub use crate::camera::*;
     pub use crate::components::*;
+    pub use crate::events::*;
+    pub use crate::game_stage::*;
     pub use crate::map::*;
     pub use crate::map_builder::*;
     pub use crate::spawner::*;
+    pub use crate::state_label::*;
     pub use crate::systems::*;
     pub use crate::turn_state::*;
 }
@@ -28,36 +36,117 @@ use prelude::*;
 const LOGO: &'static str = include_str!("../resources/logo.txt");
 
 struct State {
-    ecs: World,
-    resources: Resources,
-    input_systems: Schedule,
-    player_systems: Schedule,
-    monster_systems: Schedule,
+    ecs: App,
 }
 
 impl State {
     fn new() -> Self {
-        let mut ecs = World::default();
-        let mut resources = Resources::default();
+        use game_stage::GameStage::*;
+
+        let mut ecs = App::new();
+
+        // register our events
+        ecs.add_event::<WantsToMove>();
+        ecs.add_event::<WantsToAttack>();
+        ecs.add_event::<ActivateItem>();
+
+        ecs.add_stage_after(CoreStage::Update, PlayerCombat, SystemStage::parallel())
+            .add_stage_after(PlayerCombat, MovePlayer, SystemStage::parallel())
+            .add_stage_after(MovePlayer, PlayerFov, SystemStage::parallel())
+            .add_stage_after(PlayerFov, GenerateMonsterMoves, SystemStage::parallel())
+            .add_stage_after(GenerateMonsterMoves, MonsterCombat, SystemStage::parallel())
+            .add_stage_after(MonsterCombat, MoveMonsters, SystemStage::parallel())
+            .add_stage_after(MoveMonsters, MonsterFov, SystemStage::parallel());
+
+        build_system_sets(&mut ecs);
+
+        let mut s = Self { ecs };
+        s.reset_game_state();
+        s
+    }
+
+    fn reset_game_state(&mut self) {
+        self.ecs.world.clear_entities();
+
         let mut rng = RandomNumberGenerator::new();
         let mut map_builder = MapBuilder::new(&mut rng);
-        spawn_player(&mut ecs, map_builder.player_start);
-        // spawn_amulet_of_yala(&mut ecs, map_builder.amulet_start);
+        spawn_player(&mut self.ecs.world, map_builder.player_start);
         let exit_idx = map_builder.map.point2d_to_index(map_builder.amulet_start);
         map_builder.map.tiles[exit_idx] = TileType::Exit;
 
-        spawn_level(&mut ecs, &mut rng, 0, &map_builder.monster_spawns);
-        resources.insert(map_builder.map);
-        resources.insert(Camera::new(map_builder.player_start));
-        resources.insert(TurnState::Start);
-        resources.insert(map_builder.theme);
-        Self {
-            ecs,
-            resources,
-            input_systems: build_input_scheduler(),
-            player_systems: build_player_scheduler(),
-            monster_systems: build_monster_scheduler(),
+        spawn_level(
+            &mut self.ecs.world,
+            &mut rng,
+            0,
+            &map_builder.monster_spawns,
+        );
+        self.ecs.insert_resource(map_builder.map);
+        self.ecs
+            .insert_resource(Camera::new(map_builder.player_start));
+
+        self.ecs.insert_resource(TurnState::AwaitingInput);
+        self.ecs.insert_resource(map_builder.theme);
+
+        self.ecs.world.remove_resource::<VirtualKeyCode>();
+    }
+
+    pub fn advance_level(&mut self) {
+        let mut player_query = self.ecs.world.query_filtered::<Entity, With<Player>>();
+        let player_entity = player_query.iter(&self.ecs.world).next().unwrap();
+
+        use std::collections::HashSet;
+        let mut entities_to_keep = HashSet::new();
+        entities_to_keep.insert(player_entity);
+        let mut carry_query = self.ecs.world.query::<(Entity, &Carried)>();
+        for (e, carry) in carry_query.iter(&self.ecs.world) {
+            if carry.0 == player_entity {
+                entities_to_keep.insert(e);
+            }
         }
+
+        let mut entities_query = self.ecs.world.query::<Entity>();
+        let entities_to_remove = entities_query
+            .iter(&self.ecs.world)
+            .filter_map(|e| (!entities_to_keep.contains(&e)).then(|| e))
+            .collect::<Vec<_>>();
+
+        for e in entities_to_remove {
+            self.ecs.world.despawn(e);
+        }
+
+        let mut fov_query = self.ecs.world.query::<&mut FieldOfView>();
+        for mut fov in fov_query.iter_mut(&mut self.ecs.world) {
+            fov.is_dirty = true;
+        }
+
+        let mut rng = RandomNumberGenerator::new();
+        let mut map_builder = MapBuilder::new(&mut rng);
+        let mut map_level = 0;
+        let mut player_query = self.ecs.world.query::<(&mut Player, &mut PointC)>();
+        for (mut player, mut pos) in player_query.iter_mut(&mut self.ecs.world) {
+            player.map_level += 1;
+            map_level = player.map_level;
+            pos.0.x = map_builder.player_start.x;
+            pos.0.y = map_builder.player_start.y;
+        }
+        if map_level == 2 {
+            spawn_amulet_of_yala(&mut self.ecs.world, map_builder.amulet_start);
+        } else {
+            let exit_idx = map_builder.map.point2d_to_index(map_builder.amulet_start);
+            map_builder.map.tiles[exit_idx] = TileType::Exit;
+        }
+        spawn_level(
+            &mut self.ecs.world,
+            &mut rng,
+            map_level as usize,
+            &map_builder.monster_spawns,
+        );
+        self.ecs.world.insert_resource(map_builder.map);
+        self.ecs
+            .world
+            .insert_resource(Camera::new(map_builder.player_start));
+        self.ecs.insert_resource(TurnState::AwaitingInput);
+        self.ecs.world.insert_resource(map_builder.theme);
     }
 
     fn game_over(&mut self, ctx: &mut BTerm) {
@@ -132,76 +221,6 @@ impl State {
             self.reset_game_state();
         }
     }
-
-    fn reset_game_state(&mut self) {
-        self.ecs = World::default();
-        self.resources = Resources::default();
-        let mut rng = RandomNumberGenerator::new();
-        let mut map_builder = MapBuilder::new(&mut rng);
-        spawn_player(&mut self.ecs, map_builder.player_start);
-        let exit_idx = map_builder.map.point2d_to_index(map_builder.amulet_start);
-        map_builder.map.tiles[exit_idx] = TileType::Exit;
-        spawn_level(&mut self.ecs, &mut rng, 0, &map_builder.monster_spawns);
-        self.resources.insert(map_builder.map);
-        self.resources.insert(Camera::new(map_builder.player_start));
-        self.resources.insert(TurnState::AwaitingInput);
-        self.resources.insert(map_builder.theme);
-    }
-
-    pub fn advance_level(&mut self) {
-        let player_entity = *<Entity>::query()
-            .filter(component::<Player>())
-            .iter(&mut self.ecs)
-            .nth(0)
-            .unwrap();
-        use std::collections::HashSet;
-        let mut entities_to_keep = HashSet::new();
-        entities_to_keep.insert(player_entity);
-        <(Entity, &Carried)>::query()
-            .iter(&self.ecs)
-            .filter(|(_, carried)| carried.0 == player_entity)
-            .map(|(e, _)| *e)
-            .for_each(|e| {
-                entities_to_keep.insert(e);
-            });
-        let mut cb = CommandBuffer::new(&mut self.ecs);
-        for e in Entity::query().iter(&self.ecs) {
-            if !entities_to_keep.contains(e) {
-                cb.remove(*e);
-            }
-        }
-        cb.flush(&mut self.ecs);
-        <&mut FieldOfView>::query()
-            .iter_mut(&mut self.ecs)
-            .for_each(|fov| fov.is_dirty = true);
-        let mut rng = RandomNumberGenerator::new();
-        let mut map_builder = MapBuilder::new(&mut rng);
-        let mut map_level = 0;
-        <(&mut Player, &mut Point)>::query()
-            .iter_mut(&mut self.ecs)
-            .for_each(|(player, pos)| {
-                player.map_level += 1;
-                map_level = player.map_level;
-                pos.x = map_builder.player_start.x;
-                pos.y = map_builder.player_start.y;
-            });
-        if map_level == 2 {
-            spawn_amulet_of_yala(&mut self.ecs, map_builder.amulet_start);
-        } else {
-            let exit_idx = map_builder.map.point2d_to_index(map_builder.amulet_start);
-            map_builder.map.tiles[exit_idx] = TileType::Exit;
-        }
-        spawn_level(
-            &mut self.ecs,
-            &mut rng,
-            map_level as usize,
-            &map_builder.monster_spawns,
-        );
-        self.resources.insert(map_builder.map);
-        self.resources.insert(Camera::new(map_builder.player_start));
-        self.resources.insert(TurnState::AwaitingInput);
-        self.resources.insert(map_builder.theme);
-    }
 }
 
 impl GameState for State {
@@ -213,26 +232,29 @@ impl GameState for State {
         ctx.set_active_console(2);
         ctx.cls();
 
-        self.resources.insert(ctx.key);
-        ctx.set_active_console(0);
-        self.resources.insert(Point::from_tuple(ctx.mouse_pos()));
-
-        let current_state = self.resources.get::<TurnState>().unwrap().clone();
-        match current_state {
-            TurnState::Start => self.start(ctx),
-            TurnState::AwaitingInput => self
-                .input_systems
-                .execute(&mut self.ecs, &mut self.resources),
-            TurnState::PlayerTurn => self
-                .player_systems
-                .execute(&mut self.ecs, &mut self.resources),
-            TurnState::MonsterTurn => self
-                .monster_systems
-                .execute(&mut self.ecs, &mut self.resources),
-            TurnState::GameOver => self.game_over(ctx),
-            TurnState::Victory => self.victory(ctx),
-            TurnState::NextLevel => self.advance_level(),
+        if let Some(key) = ctx.key {
+            self.ecs.insert_resource(key);
+        } else {
+            // In order to keep consistency with the Legion version, we need to access Bevy's World
+            // directly, since App doesn't support removing resources.
+            self.ecs.world.remove_resource::<VirtualKeyCode>();
         }
+
+        ctx.set_active_console(0);
+        self.ecs.insert_resource(Point::from_tuple(ctx.mouse_pos()));
+
+        self.ecs.insert_resource(Point::from_tuple(ctx.mouse_pos()));
+        // Unfortunately, with the current source project's design, without refactoring the world init
+        // code into systems, we must leak the state into this abstraction.
+        match self.ecs.world.get_resource::<TurnState>() {
+            Some(TurnState::Start) => self.start(ctx),
+            Some(TurnState::GameOver) => self.game_over(ctx),
+            Some(TurnState::Victory) => self.victory(ctx),
+            Some(TurnState::NextLevel) => self.advance_level(),
+            _ => {}
+        }
+
+        self.ecs.update();
         render_draw_buffer(ctx).expect("Render error");
     }
 }
