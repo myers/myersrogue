@@ -19,9 +19,8 @@ pub fn map_render(
                 let tint = if player_fov.visible_tiles.contains(&pt) {
                     WHITE
                 } else {
-                    DARKGRAY
+                    DARK_GRAY
                 };
-                let idx = map_idx(x, y);
                 let glyph = theme.tile_to_render(map.tiles[idx]);
                 draw_batch.set(pt - offset, ColorPair::new(tint, BLACK), glyph);
             }

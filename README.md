@@ -18,3 +18,7 @@ cargo install wasm-bindgen-cli
 cargo build --target wasm32-unknown-unknown --release
 wasm-bindgen target/wasm32-unknown-unknown/release/myersrogue.wasm --out-dir ./web --no-modules --no-typescript
 ```
+
+## TODO
+
+* convert to bevy_ecs <https://saveriomiroddi.github.io/learn_bevy_ecs_by_ripping_off/>

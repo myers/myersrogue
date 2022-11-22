@@ -62,6 +62,7 @@ impl State {
 
         let mut s = Self { ecs };
         s.reset_game_state();
+        s.ecs.insert_resource(TurnState::Start);
         s
     }
 

@@ -18,12 +18,6 @@ pub struct Render {
 }
 
 #[derive(Component, Clone, Copy, Debug, PartialEq)]
-pub struct WantsToMove {
-    pub entity: Entity,
-    pub destination: Point,
-}
-
-#[derive(Component, Clone, Copy, Debug, PartialEq)]
 pub struct Health {
     pub current: i32,
     pub max: i32,
@@ -31,12 +25,6 @@ pub struct Health {
 
 #[derive(Component, Debug, PartialEq)]
 pub struct Name(pub String);
-
-#[derive(Component, Clone, Copy, Debug, PartialEq)]
-pub struct WantsToAttack {
-    pub attacker: Entity,
-    pub victim: Entity,
-}
 
 #[derive(Component, Clone, Copy, Debug, PartialEq)]
 pub struct ChasingPlayer;
@@ -82,12 +70,6 @@ pub struct ProvidesHealing {
 
 #[derive(Component, Debug, PartialEq)]
 pub struct Carried(pub Entity);
-
-#[derive(Component, Clone, Copy, Debug, PartialEq)]
-pub struct ActivateItem {
-    pub used_by: Entity,
-    pub item: Entity,
-}
 
 #[derive(Component, Clone, Copy, Debug, PartialEq)]
 pub struct Damage(pub i32);
