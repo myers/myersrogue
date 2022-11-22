@@ -95,7 +95,7 @@ impl State {
             ctx.print_color_centered(y, RED, BLACK, line);
             y += 1;
         }
-        ctx.print_color_centered(40, WHITE, BLACK, "The elders pushed you out of your town.  \"Find the Amulet, and save us all.  Good Luck!\".");
+        ctx.print_color_centered(40, WHITE, BLACK, "The town elder wakes you and pushs you out the door.  \"Find the Amulet, and save us all.  Good Luck!\".");
 
         ctx.print_color_centered(45, GREEN, BLACK, "Press 1 to start.");
 
