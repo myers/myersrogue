@@ -25,6 +25,8 @@ mod prelude {
 
 use prelude::*;
 
+const LOGO: &'static str = include_str!("../resources/logo.txt");
+
 struct State {
     ecs: World,
     resources: Resources,
@@ -47,7 +49,7 @@ impl State {
         spawn_level(&mut ecs, &mut rng, 0, &map_builder.monster_spawns);
         resources.insert(map_builder.map);
         resources.insert(Camera::new(map_builder.player_start));
-        resources.insert(TurnState::AwaitingInput);
+        resources.insert(TurnState::Start);
         resources.insert(map_builder.theme);
         Self {
             ecs,
@@ -80,6 +82,22 @@ impl State {
             "Don't worry, you can always try again with a new hero.",
         );
         ctx.print_color_centered(9, GREEN, BLACK, "Press 1 to play again.");
+
+        if let Some(VirtualKeyCode::Key1) = ctx.key {
+            self.reset_game_state();
+        }
+    }
+
+    fn start(&mut self, ctx: &mut BTerm) {
+        ctx.set_active_console(2);
+        let mut y = 20;
+        for line in LOGO.lines() {
+            ctx.print_color_centered(y, RED, BLACK, line);
+            y += 1;
+        }
+        ctx.print_color_centered(40, WHITE, BLACK, "The elders pushed you out of your town.  \"Find the Amulet, and save us all.  Good Luck!\".");
+
+        ctx.print_color_centered(45, GREEN, BLACK, "Press 1 to start.");
 
         if let Some(VirtualKeyCode::Key1) = ctx.key {
             self.reset_game_state();
@@ -195,6 +213,7 @@ impl GameState for State {
 
         let current_state = self.resources.get::<TurnState>().unwrap().clone();
         match current_state {
+            TurnState::Start => self.start(ctx),
             TurnState::AwaitingInput => self
                 .input_systems
                 .execute(&mut self.ecs, &mut self.resources),
