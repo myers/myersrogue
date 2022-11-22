@@ -87,7 +87,7 @@ pub fn build_system_sets(app: &mut App) {
         ConditionSet::new()
             .run_if_resource_equals(MonsterTurn)
             // FIXME monsters can't use items.  It seems like if we add this here it gets a 2nd copy of events
-            .with_system(use_items::use_items)
+            // .with_system(use_items::use_items)
             .with_system(combat::combat)
             .into(),
     );
