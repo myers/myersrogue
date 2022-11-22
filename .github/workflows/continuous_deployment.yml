@@ -11,13 +11,13 @@ jobs:
           target: wasm32-unknown-unknown
 
       - uses: actions/checkout@v2
+      - uses: jetli/wasm-bindgen-action@0.1.0
 
       - run: cargo build --target wasm32-unknown-unknown --release
       - run: wasm-bindgen target/wasm32-unknown-unknown/release/myersrogue.wasm --out-dir ./web --no-modules --no-typescript
 
-
       - uses: peaceiris/actions-gh-pages@v3
         if: github.ref == 'refs/heads/main'
         with:
-          github_token: $
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./web
