@@ -51,16 +51,18 @@ impl MapBuilder {
             1024.0,
         );
         const UNREACHABLE: &f32 = &f32::MAX;
-        self.map.index_to_point2d(
-            dijkstra_map
-                .map
-                .iter()
-                .enumerate()
-                .filter(|(_, dist)| *dist < UNREACHABLE)
-                .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
-                .expect("failed to find most distant")
-                .0,
-        )
+        let mut indexes_and_dist = dijkstra_map
+            .map
+            .iter()
+            .enumerate()
+            .filter(|(_, dist)| *dist < UNREACHABLE)
+            .collect::<Vec<(usize, &f32)>>();
+        indexes_and_dist.sort_by(|aa, bb| bb.1.partial_cmp(aa.1).unwrap());
+        if indexes_and_dist.len() == 0 {
+            print!("{:#?}", indexes_and_dist);
+            panic!("WTF");
+        }
+        self.map.index_to_point2d(indexes_and_dist[0].0)
     }
     fn fill(&mut self, tile: TileType) {
         self.map.tiles.iter_mut().for_each(|t| *t = tile);

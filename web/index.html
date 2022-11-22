@@ -1,0 +1,38 @@
+<html>
+  <head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+    <title>Myers Rouge</title>
+    <style>
+      * { margin:0; padding:0; } /* to remove the top and left whitespace */
+
+      html, body { width:100%; height:100%; } /* just to be sure these are full screen*/
+
+      body {
+        background-color: black;
+      }
+
+      .aligner {
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .aligner-item {
+        flex: 1;
+      }
+    </style>
+
+  </head>
+  <body>
+    <div class="aligner">
+      <canvas id="canvas" class="aligner-item"></canvas>
+    </div>
+    <script src="./myersrogue.js"></script>
+    <script>
+      window.addEventListener("load", async () => {
+        await wasm_bindgen("./myersrogue_bg.wasm");
+      });
+    </script>
+  </body>
+</html>
