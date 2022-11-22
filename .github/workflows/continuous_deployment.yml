@@ -1,0 +1,23 @@
+name: Continuous deployment
+on: [push, pull_request]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
+
+      - uses: actions/checkout@v2
+
+      - run: cargo build --target wasm32-unknown-unknown --release
+      - run: wasm-bindgen target/wasm32-unknown-unknown/release/myersrogue.wasm --out-dir ./web --no-modules --no-typescript
+
+
+      - uses: peaceiris/actions-gh-pages@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          github_token: $
+          publish_dir: ./web
