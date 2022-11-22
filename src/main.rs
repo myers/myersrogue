@@ -216,7 +216,7 @@ embedded_resource!(TILE_FONT, "../resources/dungeonfont.png");
 fn main() -> BError {
     link_resource!(TILE_FONT, "resources/dungeonfont.png");
     let context = BTermBuilder::new()
-        .with_title("Monkey Crawler")
+        .with_title("MyersRogue")
         .with_fps_cap(30.0)
         .with_dimensions(DISPLAY_WIDTH, DISPLAY_HEIGHT)
         .with_tile_dimensions(32, 32)

@@ -3,7 +3,7 @@ use legion::systems::CommandBuffer;
 use ron::de::from_reader;
 use serde::Deserialize;
 use std::collections::HashSet;
-use std::fs::File;
+// use std::fs::File;
 
 const TEMPLATE_FILE: &[u8] = include_bytes!("../../resources/template.ron");
 
@@ -16,9 +16,10 @@ pub struct Template {
     pub glyph: char,
     pub provides: Option<Vec<(String, i32)>>,
     pub hp: Option<i32>,
+    pub base_damage: Option<i32>,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, PartialEq)]
 pub enum EntityType {
     Enemy,
     Item,
@@ -51,6 +52,8 @@ impl Templates {
                     available_entities.push(t);
                 }
             });
+        // available_entities.sort_by_cached_key(|f| rng.range(0, available_entities.len()));
+
         let mut commands = CommandBuffer::new(ecs);
         spawn_points.iter().for_each(|pt| {
             if let Some(entity) = rng.random_slice_entry(&available_entities) {
@@ -96,6 +99,12 @@ impl Templates {
                         println!("Warning: we don't know how to provide {}", provides);
                     }
                 });
+        }
+        if let Some(dmg) = &template.base_damage {
+            commands.add_component(entity, Damage(*dmg));
+            if template.entity_type == EntityType::Item {
+                commands.add_component(entity, Weapon {});
+            }
         }
     }
 }
