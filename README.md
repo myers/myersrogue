@@ -20,5 +20,3 @@ wasm-bindgen target/wasm32-unknown-unknown/release/myersrogue.wasm --out-dir ./w
 ```
 
 ## TODO
-
-* convert to bevy_ecs <https://saveriomiroddi.github.io/learn_bevy_ecs_by_ripping_off/>
