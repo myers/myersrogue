@@ -2,6 +2,10 @@
 
 I'm following along in Hands On Rust.  It's been a fun way to learn and practice rust.
 
+## play
+
+<https://icepick.info/myersrogue/>
+
 ## notes
 
 <https://opengameart.org/content/dungeon-crawl-32x32-tiles>
