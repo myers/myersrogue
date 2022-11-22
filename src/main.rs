@@ -97,7 +97,13 @@ impl State {
         }
         ctx.print_color_centered(40, WHITE, BLACK, "The town elder wakes you and pushes you out the door.  \"Find the Amulet, and save us all.  Good Luck!\".");
 
-        ctx.print_color_centered(45, GREEN, BLACK, "Press 1 to start.");
+        ctx.print_color_centered(
+            45,
+            GREEN,
+            BLACK,
+            "Explore with the arrow keys, press g to pick up items",
+        );
+        ctx.print_color_centered(47, GREEN, BLACK, "Press 1 to start.");
 
         if let Some(VirtualKeyCode::Key1) = ctx.key {
             self.reset_game_state();
