@@ -14,7 +14,7 @@ pub fn spawn_level(
 }
 
 pub fn spawn_player(ecs: &mut World, pos: Point) {
-    ecs.spawn().insert_bundle((
+    ecs.spawn((
         Player { map_level: 0 },
         PointC(pos),
         Render {
@@ -31,7 +31,7 @@ pub fn spawn_player(ecs: &mut World, pos: Point) {
 }
 
 pub fn spawn_amulet_of_yala(world: &mut World, pos: Point) {
-    world.spawn().insert_bundle((
+    world.spawn((
         Item,
         AmuletOfYala,
         PointC(pos),

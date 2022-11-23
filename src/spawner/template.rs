@@ -61,9 +61,7 @@ impl Templates {
     }
 
     pub fn spawn_entity(&self, pt: &Point, template: &Template, world: &mut World) {
-        let mut world_spawner = world.spawn();
-
-        let entity = world_spawner.insert_bundle((
+        let mut entity = world.spawn((
             PointC(*pt),
             Render {
                 color: ColorPair::new(WHITE, BLACK),

@@ -2,10 +2,9 @@ use crate::prelude::*;
 
 pub fn map_render(
     player_fov_query: Query<&FieldOfView, With<Player>>,
-    (map, camera, theme): (Res<Map>, Res<Camera>, Res<Box<dyn MapTheme>>),
+    (map, camera, theme): (Res<Map>, Res<Camera>, Res<Theme>),
 ) {
     let player_fov = player_fov_query.single();
-
     let mut draw_batch = DrawBatch::new();
     draw_batch.target(0);
     for y in camera.top_y..=camera.bottom_y {
@@ -21,7 +20,7 @@ pub fn map_render(
                 } else {
                     DARK_GRAY
                 };
-                let glyph = theme.tile_to_render(map.tiles[idx]);
+                let glyph = (**theme).tile_to_render(map.tiles[idx]);
                 draw_batch.set(pt - offset, ColorPair::new(tint, BLACK), glyph);
             }
         }

@@ -4,11 +4,11 @@ mod events;
 mod game_stage;
 mod map;
 mod map_builder;
+mod resources;
 mod spawner;
 mod state_label;
 mod systems;
 mod turn_state;
-
 mod prelude {
     pub use bracket_lib::prelude::*;
 
@@ -25,6 +25,7 @@ mod prelude {
     pub use crate::game_stage::*;
     pub use crate::map::*;
     pub use crate::map_builder::*;
+    pub use crate::resources::*;
     pub use crate::spawner::*;
     pub use crate::state_label::*;
     pub use crate::systems::*;
@@ -86,9 +87,9 @@ impl State {
             .insert_resource(Camera::new(map_builder.player_start));
 
         self.ecs.insert_resource(TurnState::AwaitingInput);
-        self.ecs.insert_resource(map_builder.theme);
+        self.ecs.insert_resource(Theme(map_builder.theme));
 
-        self.ecs.world.remove_resource::<VirtualKeyCode>();
+        self.ecs.world.remove_resource::<GameKeyCode>();
     }
 
     pub fn advance_level(&mut self) {
@@ -147,7 +148,7 @@ impl State {
             .world
             .insert_resource(Camera::new(map_builder.player_start));
         self.ecs.insert_resource(TurnState::AwaitingInput);
-        self.ecs.world.insert_resource(map_builder.theme);
+        self.ecs.world.insert_resource(Theme(map_builder.theme));
     }
 
     fn game_over(&mut self, ctx: &mut BTerm) {
@@ -234,17 +235,17 @@ impl GameState for State {
         ctx.cls();
 
         if let Some(key) = ctx.key {
-            self.ecs.insert_resource(key);
+            self.ecs.insert_resource(GameKeyCode(key));
         } else {
             // In order to keep consistency with the Legion version, we need to access Bevy's World
             // directly, since App doesn't support removing resources.
-            self.ecs.world.remove_resource::<VirtualKeyCode>();
+            self.ecs.world.remove_resource::<GameKeyCode>();
         }
 
         ctx.set_active_console(0);
-        self.ecs.insert_resource(Point::from_tuple(ctx.mouse_pos()));
 
-        self.ecs.insert_resource(Point::from_tuple(ctx.mouse_pos()));
+        self.ecs
+            .insert_resource(MousePoint(Point::from_tuple(ctx.mouse_pos())));
         // Unfortunately, with the current source project's design, without refactoring the world init
         // code into systems, we must leak the state into this abstraction.
         match self.ecs.world.get_resource::<TurnState>() {

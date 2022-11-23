@@ -11,12 +11,12 @@ pub fn player_input(
     weapons_query: Query<&Weapon>,
     carried_weapons_query: Query<(Entity, &Carried), With<Weapon>>,
     enemies_query: Query<(Entity, &PointC), With<Enemy>>,
-    key: Option<Res<VirtualKeyCode>>,
+    key: Option<Res<GameKeyCode>>,
 ) {
     let (player_entity, player_pos) = player_query.single();
 
-    if let Some(key) = key.as_deref() {
-        let delta = match key {
+    if let Some(key) = key {
+        let delta = match **key {
             VirtualKeyCode::Left => Point::new(-1, 0),
             VirtualKeyCode::Right => Point::new(1, 0),
             VirtualKeyCode::Up => Point::new(0, -1),
@@ -94,7 +94,7 @@ pub fn player_input(
         }
         commands.insert_resource(TurnState::PlayerTurn);
 
-        commands.remove_resource::<VirtualKeyCode>();
+        commands.remove_resource::<GameKeyCode>();
     }
 }
 

@@ -4,16 +4,17 @@ use crate::prelude::*;
 pub fn tooltips(
     positions: Query<(&PointC, &components::Name, Option<&Health>)>,
     player_fov_query: Query<&FieldOfView, With<Player>>,
-    (mouse_pos, camera): (Res<Point>, Res<Camera>),
+    mouse_pos: Res<MousePoint>,
+    camera: Res<Camera>,
 ) {
     let offset = Point::new(camera.left_x, camera.top_y);
-    let map_pos = *mouse_pos + offset;
+    let map_pos = **mouse_pos + offset;
     let mut draw_batch = DrawBatch::new();
     draw_batch.target(2);
     let player_fov = player_fov_query.single();
     for (pos, name, health) in positions.iter() {
         if pos.0 == map_pos && player_fov.visible_tiles.contains(&pos.0) {
-            let screen_pos = *mouse_pos * 4;
+            let screen_pos = **mouse_pos * 4;
             let display = if let Some(health) = health {
                 format!("{} : {} hp", &name.0, health.current)
             } else {
